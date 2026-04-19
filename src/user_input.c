@@ -76,14 +76,30 @@ void __attribute__((interrupt("WCH-Interrupt-fast"))) EXTI0_IRQHandler(void) {
 
 void gpio_init() {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOD |
-                               RCC_APB2Periph_AFIO,
+                               RCC_APB2Periph_AFIO | RCC_APB2Periph_SPI1,
                            ENABLE);
-
-    // Port B outputs
+    // --------
+    //  GPIOs
+    // --------
+    // Port A outputs
     GPIO_InitTypeDef gpio = {0};
+    gpio.GPIO_Mode = GPIO_Mode_Out_PP;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;
+    gpio.GPIO_Pin =
+        PINA_LMX_SREF | PINA_LMX_SYNC | PINA_LMX_CE | PINA_LMX_RCLK | PINA_LMX_RDIR | PINA_LMX_CSB;
+    // Enable the LMX and de-select the SPI
+    GPIO_Write(GPIOA, PINA_LMX_CE | PINA_LMX_CSB);
+    GPIO_Init(GPIOA, &gpio);
+
+    // Port A alternate-function outputs
+    gpio.GPIO_Mode = GPIO_Mode_AF_PP;
+    gpio.GPIO_Pin = PINA_LMX_SCK | PINA_LMX_SDI;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_Init(GPIOA, &gpio);
+
+    // Port B alternate-function outputs
     gpio.GPIO_Mode = GPIO_Mode_AF_OD;
     gpio.GPIO_Pin = PINB_SCL | PINB_SDA;
-    gpio.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_Init(GPIOB, &gpio);
 
     // Port B inputs
@@ -97,6 +113,18 @@ void gpio_init() {
     // Port D inputs
     gpio.GPIO_Pin = PIND_ROCK_SW;
     GPIO_Init(GPIOD, &gpio);
+
+    // --------
+    //  SPI
+    // --------
+    SPI_InitTypeDef spi_cfg = {0};
+    SPI_StructInit(&spi_cfg);
+    spi_cfg.SPI_Mode = SPI_Mode_Master;
+    spi_cfg.SPI_DataSize = SPI_DataSize_8b;
+    spi_cfg.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;  // 9 MHz I think
+    spi_cfg.SPI_NSS = SPI_NSS_Soft;
+    SPI_Init(SPI1, &spi_cfg);
+    SPI_Cmd(SPI1, ENABLE);
 }
 
 void poll_inputs() {
