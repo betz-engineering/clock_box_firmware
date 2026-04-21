@@ -70,7 +70,7 @@ void lmx_init() {
     // write initial config
     for (int i = 0; i < sizeof(config_25MHz) / sizeof(config_25MHz[0]); i++) {
         uint8_t adr = config_25MHz[i] >> 16;
-        uint8_t val = config_25MHz[i];
+        uint16_t val = config_25MHz[i];
         if (adr == 0) {
             val &= ~(1 << 2);  // reset MUXOUT_LD_SEL, enable register readback
             config_r0 = val;
@@ -131,8 +131,8 @@ void print_f_plan(t_f_plan *plan) {
     printf("  pll_n: %ld\n", plan->pll_n);
     printf("pll_num: %ld\n", plan->pll_num);
     printf("pll_den: %ld\n", plan->pll_den);
-    printf("  f_vco: %10llu Hz\n", plan->f_vco);
-    printf("  f_out: %10llu Hz\n", plan->f_out);
+    printf("  f_vco: %10lu kHz\n", (unsigned)(plan->f_vco / 1000));
+    printf("  f_out: %10lu kHz\n", (unsigned)(plan->f_out / 1000));
 }
 
 void lmx_set_outa_pwr(int val) {
