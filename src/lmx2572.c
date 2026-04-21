@@ -32,6 +32,7 @@ static uint16_t lmx_read_reg(uint8_t addr) {
     return (val_h << 8) | val_l;
 }
 
+// TODO enable double buffering
 const static unsigned config_25MHz[] = {
     0x7D2288, 0x7C0000, 0x7B0000, 0x7A0000, 0x790000, 0x780000, 0x770000,
     0x760000, 0x750000, 0x740000, 0x730000, 0x727802, 0x710000, 0x700000,
@@ -50,8 +51,34 @@ const static unsigned config_25MHz[] = {
     0x1B0002, 0x1A0808, 0x190624, 0x18071A, 0x17007C, 0x160001, 0x150409,
     0x144848, 0x1327B7, 0x120064, 0x11008A, 0x100080, 0x0F060E, 0x0E1820,
     0x0D4000, 0x0C5001, 0x0BB018, 0x0A10F8, 0x091004, 0x082000, 0x0700B2,
-    0x06C802, 0x0530C8, 0x040A43, 0x030782, 0x020500, 0x010808, 0x00209C & ~(1 << 2),
+    0x06C802, 0x0538C8, 0x040A43, 0x030782, 0x020500, 0x010808, 0x00209C,
 };
+static uint16_t config_r0 = 0, config_r44 = 0x22a2, config_r45 = 0xc622;
+
+void lmx_init() {
+    lmx_write_reg(0, 2);  // Reset all registers to initial values
+
+    // write initial config
+    uint8_t adr = 0
+    for (int i = 0; i < sizeof(config_25MHz) / sizeof(config_25MHz[0]); i++) {
+        uint8_t adr = config_25MHz[i] >> 16;
+        uint8_t val = config_25MHz[i];
+        if (adr = 0) {
+            val &= ~(1 << 2);  // reset MUXOUT_LD_SEL, enable register readback
+            config_r0 = val;
+        } else if (adr == 44) {
+            config_r44 = val;
+        } else if (adr == 45) {
+            config_r45 = val;
+        }
+        lmx_write_reg(adr, val);
+    }
+}
+
+void lmx_dump() {
+    for (int i = 0; i < 128; i++)
+        printf("R%03d: %04x\n", i, lmx_read_reg(i));
+}
 
 static int get_ch_div(uint64_t f_set) {
     int ch_div = 1;
@@ -101,4 +128,41 @@ void print_f_plan(t_f_plan *plan) {
     printf("pll_num: %d\n", plan->pll_num);
     printf("pll_den: %d\n", plan->pll_den);
     printf("  f_out: %10llu Hz\n", get_f_out(plan));
+}
+
+void lmx_write_f_plan(t_f_plan *plan) {
+
+    lmx_write_reg(34, 0x0010 | (plan->pll_n >> 16) & 7);
+    lmx_write_reg(36, plan->pll_n);
+    lmx_write_reg(38, plan->pll_den >> 16);
+    lmx_write_reg(39, plan->pll_den);
+    lmx_write_reg(42, plan->pll_num >> 16);
+    lmx_write_reg(43, plan->pll_num);
+
+    // Set the OUTA_MUX. 0 = use channel divider
+    config_r45 &= ~((1 << 11) | (1 << 12));
+    if (plan->ch_div == 1) {
+        config_r45 |= (1 << 11);  // use VCO
+    }
+    lmx_write_reg(45, config_r45);
+
+    // Todo lookup table for channel div???
+    // Channel divider.
+    // 0: Divide by 2
+    // 1: Divide by 4
+    // 3: Divide by 8
+    // 5: Divide by 16
+    // 7: Divide by 32
+    // 9: Divide by 64
+    // 12: Divide by 128
+    // 14: Divide by 256
+    // All other values are not used.
+    lmx_write_reg(75, (1 << 11) | (plan->ch_div << 6));
+
+    // TODO set PFD_DLY_SEL (Table 3)
+    // Set double-buffer bits
+    // Set output power
+
+    config_r0 |= (1 << 3); // Set FCAL_EN
+    lmx_write_reg(0, config_r0);
 }

@@ -72,6 +72,8 @@ int main() {
         uint64_t rnd64 = random() | ((uint64_t)(random()) << 32);
         rnd64 %= (6400000000 - 12500000);
         uint64_t f_set = 12500000 + rnd64;
+        if (i == 0)
+            f_set = 1234567890;
         get_f_plan(f_set, &plan);
 
         if (f_set != get_f_out(&plan)) {

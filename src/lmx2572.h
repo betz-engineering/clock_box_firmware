@@ -9,6 +9,11 @@ typedef struct {
     uint32_t pll_den;
 } t_f_plan;
 
+
+void lmx_init();
+
+void lmx_dump();
+
 void get_f_plan(uint64_t f_set, t_f_plan *plan);
 
 uint64_t get_f_out(t_f_plan *plan);

@@ -75,11 +75,7 @@ int main() {
     printf("Hello World! This is clock_box!!\n");
     printf("SystemClk: %ld Hz\n", SystemCoreClock);
 
-    for (int i = 0; i < sizeof(config_25MHz) / sizeof(config_25MHz[0]); i++)
-        lmx_write_reg(config_25MHz[i] >> 16, config_25MHz[i]);
-
-    for (int i = 0; i < 128; i++)
-        printf("R%03d: %04x\n", i, lmx_read_reg(i));
+    lmx_init();
 
     ssd1306_i2c_init();
     Delay_Ms(10);  // Give the OLED some time to come up
