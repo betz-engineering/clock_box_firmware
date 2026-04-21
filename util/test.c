@@ -13,6 +13,12 @@ typedef struct {
 
 static const uint64_t F_PD = 64000000;  // Phase detector frequency when locked in [Hz]
 
+uint64_t get_f_out(t_f_plan *plan) {
+    uint64_t f_vco = F_PD * plan->pll_n;
+    f_vco += F_PD * plan->pll_num / plan->pll_den;
+    return f_vco / plan->ch_div;
+}
+
 static int get_ch_div(uint64_t f_set) {
     int ch_div = 1;
     uint64_t f_vco = 6400000000 >> 1;

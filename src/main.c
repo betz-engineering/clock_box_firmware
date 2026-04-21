@@ -1,8 +1,8 @@
 #include "main.h"
-#include "fixed.h"
 #include "font.h"
 #include "frame_buffer.h"
 #include "graphics.h"
+#include "lmx2572.h"
 #include "profont.h"
 #include "ssd1306_i2c.h"
 #include "ssd1306_j.h"
@@ -76,6 +76,7 @@ int main() {
     printf("SystemClk: %ld Hz\n", SystemCoreClock);
 
     lmx_init();
+    lmx_dump();
 
     ssd1306_i2c_init();
     Delay_Ms(10);  // Give the OLED some time to come up
@@ -83,6 +84,8 @@ int main() {
     ssd1306_init();
     init_from_header(&f_profont);
     print_font_info();
+
+    bool f_set_changed = false;
 
     while (1) {
         poll_inputs();
@@ -105,18 +108,30 @@ int main() {
         }
 
         int enc = get_encoder_ticks(true);
-        if (enc != 0)
+        if (enc != 0) {
             f_set += enc * digit_multiplier;
+            f_set_changed = true;
+        }
 
         // Reset all digits on the right of digit_select
-        if (event_flags & EV_ROCK_SW_S)
+        if (event_flags & EV_ROCK_SW_S) {
             f_set -= f_set % (digit_multiplier);
+            f_set_changed = true;
+        }
 
-        // Enforce absolute frequency limits
-        if (f_set < 12500000)
-            f_set = 12500000;
-        if (f_set > 6400000000)
-            f_set = 6400000000;
+        if (f_set_changed) {
+            // Enforce absolute frequency limits
+            if (f_set < 12500000)
+                f_set = 12500000;
+            if (f_set > 6400000000)
+                f_set = 6400000000;
+
+            t_f_plan plan = {0};
+            get_f_plan(f_set, &plan);
+            print_f_plan(&plan);
+            lmx_write_f_plan(&plan);
+            f_set_changed = false;
+        }
 
         fill(0);
         display_f_set();

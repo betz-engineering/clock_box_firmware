@@ -1,9 +1,41 @@
 #include "lmx2572.h"
+#include "main.h"
+#include <ch32v20x.h>
+#include <stdint.h>
 #include <stdio.h>
 
+#define MASH_ORDER 3
 #define CS_N(val) GPIO_WriteBit(GPIOA, PINA_LMX_CSB, val)
 
+const static unsigned config_25MHz[] = {
+    0x7D2288, 0x7C0000, 0x7B0000, 0x7A0000, 0x790000, 0x780000,
+    0x770000, 0x760000, 0x750000, 0x740000, 0x730000, 0x727802,
+    0x710000, 0x700000, 0x6F0000, 0x6E0000, 0x6D0000, 0x6C0000,
+    0x6B0000, 0x6A0007, 0x694440, 0x682710, 0x670000, 0x660000,
+    0x650000, 0x642710, 0x630000, 0x620000, 0x610000, 0x600000,
+    0x5F0000, 0x5E0000, 0x5D0000, 0x5C0000, 0x5B0000, 0x5A0000,
+    0x590000, 0x580000, 0x570000, 0x560000, 0x55D800, 0x540001,
+    0x530000, 0x522800, 0x510000, 0x50CCCC, 0x4F004C, 0x4E0107,
+    0x4D0000, 0x4C000C, 0x4B0B00, 0x4A0000, 0x49003F, 0x480001,
+    0x470081, 0x46C350, 0x450000, 0x4403E8, 0x430000, 0x4201F4,
+    0x410000, 0x401388, 0x3F0000, 0x3EFCAF,  // 0xFC: enable all double buffering
+    0x3D00A8, 0x3C03E8, 0x3B0001, 0x3A9001, 0x390020, 0x380000,
+    0x370000, 0x360000, 0x350000, 0x340421, 0x330080, 0x320080,
+    0x314180, 0x3003E0, 0x2F0300, 0x2E07F0, 0x2DC61F, 0x2C1FA0 | MASH_ORDER,
+    0x2B0000, 0x2A0000, 0x290000, 0x280000, 0x270001, 0x260000,
+    0x250205, 0x240032, 0x230004, 0x220010, 0x211E01, 0x2005BF,
+    0x1FC3E6, 0x1E18A6, 0x1D0000, 0x1C0488, 0x1B0002, 0x1A0808,
+    0x190624, 0x18071A, 0x17007C, 0x160001, 0x150409, 0x144848,
+    0x1327B7, 0x120064, 0x11008A, 0x100080, 0x0F060E, 0x0E1820,
+    0x0D4000, 0x0C5001, 0x0BB018, 0x0A10F8, 0x091004, 0x082000,
+    0x0700B2, 0x06C802, 0x0538C8, 0x040A43, 0x030782, 0x020500,
+    0x010808, 0x00209C,
+};
+
 static const uint64_t F_PD = 64000000;  // Phase detector frequency when locked in [Hz]
+
+// These get overwritten with the values from config_25MHz
+static uint16_t config_r0 = 0, config_r44 = 0x22a2, config_r45 = 0xc622;
 
 // Helper function to exchange one byte
 static uint8_t spi_rxtx(uint8_t byteToSend) {
@@ -32,38 +64,14 @@ static uint16_t lmx_read_reg(uint8_t addr) {
     return (val_h << 8) | val_l;
 }
 
-// TODO enable double buffering
-const static unsigned config_25MHz[] = {
-    0x7D2288, 0x7C0000, 0x7B0000, 0x7A0000, 0x790000, 0x780000, 0x770000,
-    0x760000, 0x750000, 0x740000, 0x730000, 0x727802, 0x710000, 0x700000,
-    0x6F0000, 0x6E0000, 0x6D0000, 0x6C0000, 0x6B0000, 0x6A0007, 0x694440,
-    0x682710, 0x670000, 0x660000, 0x650000, 0x642710, 0x630000, 0x620000,
-    0x610000, 0x600000, 0x5F0000, 0x5E0000, 0x5D0000, 0x5C0000, 0x5B0000,
-    0x5A0000, 0x590000, 0x580000, 0x570000, 0x560000, 0x55D800, 0x540001,
-    0x530000, 0x522800, 0x510000, 0x50CCCC, 0x4F004C, 0x4E0107, 0x4D0000,
-    0x4C000C, 0x4B0B00, 0x4A0000, 0x49003F, 0x480001, 0x470081, 0x46C350,
-    0x450000, 0x4403E8, 0x430000, 0x4201F4, 0x410000, 0x401388, 0x3F0000,
-    0x3E00AF, 0x3D00A8, 0x3C03E8, 0x3B0001, 0x3A9001, 0x390020, 0x380000,
-    0x370000, 0x360000, 0x350000, 0x340421, 0x330080, 0x320080, 0x314180,
-    0x3003E0, 0x2F0300, 0x2E07F0, 0x2DC61F, 0x2C1FA3, 0x2B0000, 0x2A0000,
-    0x290000, 0x280000, 0x270001, 0x260000, 0x250205, 0x240032, 0x230004,
-    0x220010, 0x211E01, 0x2005BF, 0x1FC3E6, 0x1E18A6, 0x1D0000, 0x1C0488,
-    0x1B0002, 0x1A0808, 0x190624, 0x18071A, 0x17007C, 0x160001, 0x150409,
-    0x144848, 0x1327B7, 0x120064, 0x11008A, 0x100080, 0x0F060E, 0x0E1820,
-    0x0D4000, 0x0C5001, 0x0BB018, 0x0A10F8, 0x091004, 0x082000, 0x0700B2,
-    0x06C802, 0x0538C8, 0x040A43, 0x030782, 0x020500, 0x010808, 0x00209C,
-};
-static uint16_t config_r0 = 0, config_r44 = 0x22a2, config_r45 = 0xc622;
-
 void lmx_init() {
     lmx_write_reg(0, 2);  // Reset all registers to initial values
 
     // write initial config
-    uint8_t adr = 0
     for (int i = 0; i < sizeof(config_25MHz) / sizeof(config_25MHz[0]); i++) {
         uint8_t adr = config_25MHz[i] >> 16;
         uint8_t val = config_25MHz[i];
-        if (adr = 0) {
+        if (adr == 0) {
             val &= ~(1 << 2);  // reset MUXOUT_LD_SEL, enable register readback
             config_r0 = val;
         } else if (adr == 44) {
@@ -114,55 +122,93 @@ void get_f_plan(uint64_t f_set, t_f_plan *plan) {
     plan->pll_n = pll_n;
     plan->pll_num = pll_num / gcd;
     plan->pll_den = F_PD / gcd;
-}
-
-uint64_t get_f_out(t_f_plan *plan) {
-    uint64_t f_vco = F_PD * plan->pll_n;
-    f_vco += F_PD * plan->pll_num / plan->pll_den;
-    return f_vco / plan->ch_div;
+    plan->f_vco = f_vco;
+    plan->f_out = f_set;
 }
 
 void print_f_plan(t_f_plan *plan) {
-    printf(" ch_div: %d\n", plan->ch_div);
-    printf("  pll_n: %d\n", plan->pll_n);
-    printf("pll_num: %d\n", plan->pll_num);
-    printf("pll_den: %d\n", plan->pll_den);
-    printf("  f_out: %10llu Hz\n", get_f_out(plan));
+    printf(" ch_div: %ld\n", plan->ch_div);
+    printf("  pll_n: %ld\n", plan->pll_n);
+    printf("pll_num: %ld\n", plan->pll_num);
+    printf("pll_den: %ld\n", plan->pll_den);
+    printf("  f_vco: %10llu Hz\n", plan->f_vco);
+    printf("  f_out: %10llu Hz\n", plan->f_out);
+}
+
+void lmx_set_outa_pwr(int val) {
+    config_r44 &= ~0x3F00;
+    config_r44 |= (val & 0x3F) << 8;
+    lmx_write_reg(44, config_r44);
+}
+
+static void lmx_set_outb_pwr(int val) {
+    config_r45 &= ~0x003F;
+    config_r45 |= val & 0x3F;
+    lmx_write_reg(45, config_r45);
+}
+
+static void lmx_set_ch_div(int divider) {
+    // ch_div is a frequency division factor
+    // Set the OUTA_MUX. 0 = use channel divider
+    config_r45 &= ~((1 << 11) | (1 << 12));
+    if (divider == 1)
+        config_r45 |= (1 << 11);  // directly use VCO
+    lmx_write_reg(45, config_r45);
+
+    // we don't use the divider and we are done.
+    if (divider == 1)
+        return;
+
+    // Set the channel divider value
+    unsigned ch_div_code = 14;
+    if (divider == 2)
+        ch_div_code = 0;
+    else if (divider == 4)
+        ch_div_code = 1;
+    else if (divider == 8)
+        ch_div_code = 3;
+    else if (divider == 16)
+        ch_div_code = 5;
+    else if (divider == 32)
+        ch_div_code = 7;
+    else if (divider == 64)
+        ch_div_code = 9;
+    else if (divider == 128)
+        ch_div_code = 12;
+    else if (divider == 256)
+        ch_div_code = 14;
+    else
+        printf("Error: Illegal output divider value: %d. Falling back to 14.\n", divider);
+
+    lmx_write_reg(75, (1 << 11) | (ch_div_code << 6));
 }
 
 void lmx_write_f_plan(t_f_plan *plan) {
-
-    lmx_write_reg(34, 0x0010 | (plan->pll_n >> 16) & 7);
+    lmx_write_reg(34, 0x0010 | ((plan->pll_n >> 16) & 7));
     lmx_write_reg(36, plan->pll_n);
     lmx_write_reg(38, plan->pll_den >> 16);
     lmx_write_reg(39, plan->pll_den);
     lmx_write_reg(42, plan->pll_num >> 16);
     lmx_write_reg(43, plan->pll_num);
 
-    // Set the OUTA_MUX. 0 = use channel divider
-    config_r45 &= ~((1 << 11) | (1 << 12));
-    if (plan->ch_div == 1) {
-        config_r45 |= (1 << 11);  // use VCO
-    }
-    lmx_write_reg(45, config_r45);
+    lmx_set_ch_div(plan->ch_div);
 
-    // Todo lookup table for channel div???
-    // Channel divider.
-    // 0: Divide by 2
-    // 1: Divide by 4
-    // 3: Divide by 8
-    // 5: Divide by 16
-    // 7: Divide by 32
-    // 9: Divide by 64
-    // 12: Divide by 128
-    // 14: Divide by 256
-    // All other values are not used.
-    lmx_write_reg(75, (1 << 11) | (plan->ch_div << 6));
+    // Adjust PH_DLY_SEL according to the N divider
+    unsigned pfd_dly_sel;
+#if MASH_ORDER == 0
+    pfd_dly_sel = (plan->f_vco < 4000000000) ? 0 : 1;
+#elif MASH_ORDER == 1
+    pfd_dly_sel = (plan->f_vco < 4000000000) ? 1 : 2;
+#elif MASH_ORDER == 2
+    pfd_dly_sel = (plan->f_vco < 4000000000) ? 1 : 2;
+#elif MASH_ORDER == 3
+    pfd_dly_sel = (plan->f_vco < 4900000000) ? 2 : 3;
+#elif MASH_ORDER == 4
+    pfd_dly_sel = (plan->f_vco < 4900000000) ? 4 : 5;
+#endif
+    lmx_write_reg(37, (pfd_dly_sel << 8) | 5);
 
-    // TODO set PFD_DLY_SEL (Table 3)
-    // Set double-buffer bits
-    // Set output power
-
-    config_r0 |= (1 << 3); // Set FCAL_EN
+    // Set FCAL_EN to latch the double buffer values
+    config_r0 |= (1 << 3);
     lmx_write_reg(0, config_r0);
 }
