@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 #define N_DIGITS 10
-static int64_t f_set = 3222111000;
+static int64_t f_set = 25000000;
 static int digit_select = 0;
 static int64_t digit_multiplier = 1;
 
