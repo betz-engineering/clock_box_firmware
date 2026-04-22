@@ -20,6 +20,8 @@ static int64_t f_set = 25000000;
 static int digit_select = 0;
 static int64_t digit_multiplier = 1;
 
+static t_f_plan g_plan = {0};
+
 // Convert the 64 bit integer f_set to 10 characters
 // Can't use snprintf as there is no 64 bit support :(
 static void f_set_to_buf(char *char_buf) {
@@ -37,7 +39,12 @@ static void f_set_to_buf(char *char_buf) {
     }
 }
 
-static void display_f_set() {
+static void store_flash() {
+    printf("TODO: store the configuration to flash here\n");
+}
+
+static void display_f_set(bool is_cursor) {
+    static bool is_cursor_d = true;
     char char_buf[N_DIGITS + 1];
     f_set_to_buf(char_buf);
 
@@ -51,16 +58,23 @@ static void display_f_set() {
     c_x = push_str(c_x, FB_HEIGHT / 2, &char_buf[7], 3, A_LEFT);
 
     // Draw a line above and below the selected digit
-    int x_start = (N_DIGITS - digit_select - 1) * 12;
-    if (digit_select < 3)
-        x_start += 3 * gap;
-    else if (digit_select < 6)
-        x_start += 2 * gap;
-    else if (digit_select < 9)
-        x_start += gap;
-    int x_end = x_start + 9;
-    draw_line(x_start, 0, x_end, 0);
-    draw_line(x_start, 17, x_end, 17);
+    if (is_cursor) {
+        int x_start = (N_DIGITS - digit_select - 1) * 12;
+        if (digit_select < 3)
+            x_start += 3 * gap;
+        else if (digit_select < 6)
+            x_start += 2 * gap;
+        else if (digit_select < 9)
+            x_start += gap;
+        int x_end = x_start + 9;
+        draw_line(x_start, 0, x_end, 0);
+        draw_line(x_start, 17, x_end, 17);
+    }
+
+    // When the cursor times out, store parameters to flash
+    if (is_cursor_d && !is_cursor)
+        store_flash();
+    is_cursor_d = is_cursor;
 }
 
 int main() {
@@ -91,7 +105,7 @@ int main() {
 
     bool f_set_changed = false;
     unsigned last_event_flags = 0;
-    // int ts_cursor_off = millis() + CURSOR_TIMEOUT;
+    int ts_cursor_off = millis() + CURSOR_TIMEOUT;
 
     while (1) {
         poll_inputs();
@@ -117,6 +131,7 @@ int main() {
             digit_multiplier = 1;
             for (int i = 0; i < digit_select; i++)
                 digit_multiplier *= 10;
+            ts_cursor_off = millis() + CURSOR_TIMEOUT;
         }
 
         int enc = get_encoder_ticks(true);
@@ -138,15 +153,14 @@ int main() {
             if (f_set > 6400000000)
                 f_set = 6400000000;
 
-            t_f_plan plan = {0};
-            get_f_plan(f_set, &plan);
-            print_f_plan(&plan);
-            lmx_write_f_plan(&plan);
+            get_f_plan(f_set, &g_plan);
+            print_f_plan(&g_plan);
+            lmx_write_f_plan(&g_plan);
             f_set_changed = false;
         }
 
         fill(0);
-        display_f_set();
+        display_f_set(millis() < ts_cursor_off);
         // ssd1306_refresh();
 
         delay_ms(30);

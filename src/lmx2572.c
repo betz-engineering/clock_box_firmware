@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 #define MASH_ORDER 3
-#define CS_N(val) GPIO_WriteBit(GPIOA, PINA_LMX_CSB, val)
 
 const static unsigned config_25MHz[] = {
     0x7D2288, 0x7C0000, 0x7B0000, 0x7A0000, 0x790000, 0x780000,

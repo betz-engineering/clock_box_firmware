@@ -22,6 +22,8 @@
 #define EV_ROT_CCW (1 << 12)
 #define EV_ROT_CW (1 << 13)
 
+#define CS_N(val) GPIO_WriteBit(GPIOA, PINA_LMX_CSB, val)
+
 void peripherals_init(void);
 void encoder_init(void);
 void poll_inputs(void);
