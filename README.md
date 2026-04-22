@@ -10,7 +10,7 @@ A little clock generator for the lab. Firmware repo.
   - [x] Write, Read, Initialize LMX
   - [x] Add back the millis() function to enable long-push button events
   - [x] Frequency plan generation
-  - [ ] Flash storage of last frequency
+  - [x] Flash storage of last frequency
   - [ ] Power control
   - [ ] USB serial device
   - [ ] SCPI command parser

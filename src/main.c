@@ -1,4 +1,5 @@
 #include "main.h"
+#include "flash_slot.h"
 #include "font.h"
 #include "frame_buffer.h"
 #include "graphics.h"
@@ -17,7 +18,7 @@
 #define N_DIGITS 10
 #define CURSOR_TIMEOUT_VAL 5000  // [ms]
 
-static int64_t f_set = 25000000;
+static int64_t f_set = 25000000, last_stored_f_set = 0;
 static int digit_select = 0;
 static int64_t digit_multiplier = 1;
 
@@ -40,7 +41,12 @@ static void f_set_to_buf(char *char_buf) {
     }
 }
 
-static void store_flash() { printf("TODO: store the configuration to flash here\n"); }
+static void store_flash() {
+    if (f_set != last_stored_f_set) {
+        save_slot((uint8_t *)(&f_set));
+        last_stored_f_set = f_set;
+    }
+}
 
 static void display_f_set(bool is_cursor) {
     static bool is_cursor_d = true;
@@ -92,6 +98,7 @@ int main() {
     printf("Hello World! This is clock_box!!\n");
     printf("SystemClk: %ld Hz\n", SystemCoreClock);
 
+    // Todo disable outputs in init
     lmx_init();
     // lmx_dump();
 
@@ -106,6 +113,11 @@ int main() {
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
     bool is_cursor = true;
     bool update_screen = true;
+
+    if (load_slot((uint8_t *)(&f_set))) {
+        last_stored_f_set = f_set;
+        f_set_changed = true;
+    }
 
     while (1) {
         delay_ms(30);

@@ -3,6 +3,7 @@
 #include <ch32v20x.h>
 #include <ch32v20x_gpio.h>
 #include <stdio.h>
+#include <string.h>
 
 #define T_LONG 500  // time for a long button push in [ms]
 
@@ -226,4 +227,18 @@ void poll_inputs() {
     //     printf("event_flags: %04x\n", event_flags);
     //     last_event_flags = event_flags;
     // }
+}
+
+uint32_t Lib_Write_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf) {
+    FLASH_Unlock_Fast();
+    FLASH_ErasePage_Fast(addr);
+    FLASH_ProgramPage_Fast(addr, pBuf);
+    FLASH_Lock_Fast();
+    delay_ms(1);
+    return 0;
+}
+
+uint32_t Lib_Read_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf) {
+    memcpy(pBuf, (uint32_t *)addr, num * 4);
+    return 0;
 }
