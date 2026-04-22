@@ -8,7 +8,7 @@ A little clock generator for the lab. Firmware repo.
   - [x] Encoder and rocker switch
   - [x] Changing digits with encoder and rocker
   - [x] Write, Read, Initialize LMX
-  - [ ] Add back the millis() function to enable long-push button events
+  - [x] Add back the millis() function to enable long-push button events
   - [x] Frequency plan generation
   - [ ] Flash storage of last frequency
   - [ ] USB serial device

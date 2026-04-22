@@ -2,11 +2,39 @@
 #include "main.h"
 #include <ch32v20x.h>
 #include <ch32v20x_gpio.h>
+#include <stdio.h>
 
 #define T_LONG 300  // time for a long button push in [ms]
 
 static unsigned event_flags = 0;
 static volatile int enc_sum = 0;
+
+// -----------------------------
+//  Systick interrupt
+// -----------------------------
+static volatile uint32_t system_ticks = 0;
+
+__attribute__((interrupt)) void SysTick_Handler(void) {
+    SysTick->SR = 0;
+    system_ticks++;
+}
+
+void sys_tick_config(uint32_t ticks) {
+    NVIC_EnableIRQ(SysTicK_IRQn);
+    SysTick->CTLR = 0;
+    SysTick->SR = 0;
+    SysTick->CNT = 0;
+    SysTick->CMP = ticks - 1;
+    SysTick->CTLR = 0xF;
+}
+
+unsigned millis(void) { return system_ticks; }
+
+void delay_ms(unsigned val) {
+    unsigned t2 = millis() + val;
+    while (millis() < t2)
+        ;
+}
 
 int get_encoder_ticks(bool reset) {
     static int last_ticks = 0;
@@ -74,7 +102,7 @@ void __attribute__((interrupt("WCH-Interrupt-fast"))) EXTI0_IRQHandler(void) {
     }
 }
 
-void gpio_init() {
+void peripherals_init() {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOD |
                                RCC_APB2Periph_AFIO | RCC_APB2Periph_SPI1,
                            ENABLE);
@@ -127,12 +155,21 @@ void gpio_init() {
     SPI_Cmd(SPI1, ENABLE);
 }
 
+uint8_t spi_rxtx(uint8_t val) {
+    SPI_I2S_SendData(SPI1, val);
+    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY))
+        ;
+
+    // Return the received data (and clear the RXNE flag)
+    return SPI_I2S_ReceiveData(SPI1);
+}
+
 void poll_inputs() {
     static uint8_t push_cycles[4];
     static uint8_t last_buttons = 0;
 
     // Read clock cycle counter
-    unsigned cycles = 0;  // millis();
+    unsigned cycles = millis();
 
     // Read the IO pin state
     uint16_t pb_val = GPIO_ReadInputData(GPIOB);

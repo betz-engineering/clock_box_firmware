@@ -1,5 +1,6 @@
 #include "lmx2572.h"
 #include "main.h"
+#include "user_input.h"
 #include <ch32v20x.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -36,16 +37,6 @@ static const uint64_t F_PD = 64000000;  // Phase detector frequency when locked 
 
 // These get overwritten with the values from config_25MHz
 static uint16_t config_r0 = 0, config_r44 = 0x22a2, config_r45 = 0xc622;
-
-// Helper function to exchange one byte
-static uint8_t spi_rxtx(uint8_t byteToSend) {
-    SPI_I2S_SendData(SPI1, byteToSend);
-    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY))
-        ;
-
-    // Return the received data (and clear the RXNE flag)
-    return SPI_I2S_ReceiveData(SPI1);
-}
 
 static void lmx_write_reg(uint8_t addr, uint16_t value) {
     CS_N(0);
@@ -142,11 +133,11 @@ void lmx_set_outa_pwr(int val) {
     lmx_write_reg(44, config_r44);
 }
 
-static void lmx_set_outb_pwr(int val) {
-    config_r45 &= ~0x003F;
-    config_r45 |= val & 0x3F;
-    lmx_write_reg(45, config_r45);
-}
+// static void lmx_set_outb_pwr(int val) {
+//     config_r45 &= ~0x003F;
+//     config_r45 |= val & 0x3F;
+//     lmx_write_reg(45, config_r45);
+// }
 
 static void lmx_set_ch_div(int divider) {
     // ch_div is a frequency division factor

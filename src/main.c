@@ -14,6 +14,8 @@
 #include <stdio.h>
 
 #define N_DIGITS 10
+#define CURSOR_TIMEOUT 5000
+
 static int64_t f_set = 25000000;
 static int digit_select = 0;
 static int64_t digit_multiplier = 1;
@@ -63,13 +65,15 @@ static void display_f_set() {
 
 int main() {
     SystemInit();
-    Delay_Init();
-    gpio_init();
+    peripherals_init();
     encoder_init();
+    sys_tick_config(SystemCoreClock / 1000);  // sys tick every 1 ms
 
 #if (SDI_PRINT == 1)
     SDI_Printf_Enable();
-    Delay_Ms(1000);
+    // restore SysTick config overwritten by debug.c
+    sys_tick_config(SystemCoreClock / 1000);
+    delay_ms(1000);
 #endif
 
     printf("Hello World! This is clock_box!!\n");
@@ -79,18 +83,26 @@ int main() {
     lmx_dump();
 
     ssd1306_i2c_init();
-    Delay_Ms(10);  // Give the OLED some time to come up
+    delay_ms(10);  // Give the OLED some time to come up
 
     ssd1306_init();
     init_from_header(&f_profont);
     print_font_info();
 
     bool f_set_changed = false;
+    unsigned last_event_flags = 0;
+    // int ts_cursor_off = millis() + CURSOR_TIMEOUT;
 
     while (1) {
         poll_inputs();
 
         unsigned event_flags = get_event_flags();
+
+        if (event_flags != last_event_flags) {
+            printf("event_flags: %04x\n", event_flags);
+            last_event_flags = event_flags;
+        }
+
         if (event_flags & EV_ROCK_B_S) {
             digit_select++;
             if (digit_select >= N_DIGITS)
@@ -135,8 +147,8 @@ int main() {
 
         fill(0);
         display_f_set();
-        ssd1306_refresh();
+        // ssd1306_refresh();
 
-        Delay_Ms(30);
+        delay_ms(30);
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdbool.h>
+#include <stdint.h>
 
 // Meaning of the bits in the value returned by get_button_flags()
 // It indicates which events happened since the last call
@@ -21,7 +22,7 @@
 #define EV_ROT_CCW (1 << 12)
 #define EV_ROT_CW (1 << 13)
 
-void gpio_init(void);
+void peripherals_init(void);
 void encoder_init(void);
 void poll_inputs(void);
 
@@ -32,3 +33,17 @@ int get_encoder_ticks(bool reset);
 // returns the instantaneous state of the encoder and back button (in the 2 LSBs)
 // the other bits are used to indicate events. See the EV_ flags above.
 unsigned get_event_flags(void);
+
+// Send (and receive) one byte on the SPI. Blocking.
+uint8_t spi_rxtx(uint8_t val);
+
+// Return a running number of time since boot in [ms]
+unsigned millis(void);
+
+// Blocking wait in [ms]
+// use this instead of Delay_Ms() from debug.h, as the latter will mess with the
+// systick-timer hardware configuration.
+void delay_ms(unsigned val);
+
+// Setup the cycles / systick interrupt
+void sys_tick_config(uint32_t ticks);
