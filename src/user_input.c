@@ -97,6 +97,8 @@ void encoder_init(void) {
 void __attribute__((interrupt("WCH-Interrupt-fast"))) EXTI0_IRQHandler(void) {
     if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
         // ENC_A just had a rising edge, so ENC_B must be stable now
+        // We assume excellent analog debouncing here. Otherwise we would need to
+        // introduce some dead-time here.
         enc_sum += GPIO_ReadInputDataBit(GPIOB, PINB_ENC_B) ? 1 : -1;
         EXTI_ClearITPendingBit(EXTI_Line0);
     }
@@ -206,14 +208,16 @@ void poll_inputs() {
         if (falling & (1 << i)) {
             // On button push (falling edge), latch the current cycle count
             push_cycles[i] = cycles;
-        } else if (rising & (1 << i)) {
-            // On button release, set the short-press bits in 0x0F0
-            event_flags |= (1 << (4 + i));
-            push_cycles[i] = 0;
-        } else if ((push_cycles[i] > 0) && (cycles - push_cycles[i]) >= T_LONG) {
-            // On timeout, set the long-press bits in 0xF00
-            event_flags |= (1 << (8 + i));
-            push_cycles[i] = 0;
+        } else if (push_cycles[i] > 0) {
+            if (rising & (1 << i)) {
+                // On button release, fire a short-press event
+                event_flags |= (1 << (4 + i));
+                push_cycles[i] = 0;
+            } else if ((cycles - push_cycles[i]) >= T_LONG) {
+                // On timeout, fire a long-press event
+                event_flags |= (1 << (8 + i));
+                push_cycles[i] = 0;
+            }
         }
     }
 }
