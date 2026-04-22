@@ -4,23 +4,33 @@
 
 // Meaning of the bits in the value returned by get_button_flags()
 // It indicates which events happened since the last call
+// Instantaneous value
 #define EV_ROCK_A (1 << 0)
 #define EV_ROCK_B (1 << 1)
 #define EV_ROCK_SW (1 << 2)
 #define EV_ENC_SW (1 << 3)
 
-#define EV_ROCK_A_S (1 << 4)
-#define EV_ROCK_B_S (1 << 5)
-#define EV_ROCK_SW_S (1 << 6)
-#define EV_ENC_SW_S (1 << 7)
+// On push
+#define EV_ROCK_A_P (1 << 4)
+#define EV_ROCK_B_P (1 << 5)
+#define EV_ROCK_SW_P (1 << 6)
+#define EV_ENC_SW_P (1 << 7)
 
-#define EV_ROCK_A_L (1 << 8)
-#define EV_ROCK_B_L (1 << 9)
-#define EV_ROCK_SW_L (1 << 10)
-#define EV_ENC_SW_L (1 << 11)
+// Short push and release
+#define EV_ROCK_A_S (1 << 8)
+#define EV_ROCK_B_S (1 << 9)
+#define EV_ROCK_SW_S (1 << 10)
+#define EV_ENC_SW_S (1 << 11)
 
-#define EV_ROT_CCW (1 << 12)
-#define EV_ROT_CW (1 << 13)
+// Long push and release
+#define EV_ROCK_A_L (1 << 12)
+#define EV_ROCK_B_L (1 << 13)
+#define EV_ROCK_SW_L (1 << 14)
+#define EV_ENC_SW_L (1 << 15)
+
+// Encoder tick
+#define EV_ROT_CCW (1 << 16)
+#define EV_ROT_CW (1 << 17)
 
 #define CS_N(val) GPIO_WriteBit(GPIOA, PINA_LMX_CSB, val)
 

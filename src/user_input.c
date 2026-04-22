@@ -4,7 +4,7 @@
 #include <ch32v20x_gpio.h>
 #include <stdio.h>
 
-#define T_LONG 300  // time for a long button push in [ms]
+#define T_LONG 500  // time for a long button push in [ms]
 
 static unsigned event_flags = 0;
 static volatile int enc_sum = 0;
@@ -167,8 +167,7 @@ uint8_t spi_rxtx(uint8_t val) {
 }
 
 void poll_inputs() {
-    static uint8_t push_cycles[4];
-    static uint8_t last_buttons = 0;
+    static unsigned push_cycles[4], last_buttons = 0;
 
     // Read clock cycle counter
     unsigned cycles = millis();
@@ -205,19 +204,26 @@ void poll_inputs() {
     last_buttons = buttons;
 
     for (int i = 0; i < 4; i++) {
-        if (falling & (1 << i)) {
-            // On button push (falling edge), latch the current cycle count
+        if (rising & (1 << i)) {
+            // On button push, latch the current cycle count
+            event_flags |= EV_ROCK_A_P << i;
             push_cycles[i] = cycles;
         } else if (push_cycles[i] > 0) {
-            if (rising & (1 << i)) {
+            if (falling & (1 << i)) {
                 // On button release, fire a short-press event
-                event_flags |= (1 << (4 + i));
+                event_flags |= EV_ROCK_A_S << i;
                 push_cycles[i] = 0;
             } else if ((cycles - push_cycles[i]) >= T_LONG) {
                 // On timeout, fire a long-press event
-                event_flags |= (1 << (8 + i));
+                event_flags |= EV_ROCK_A_L << i;
                 push_cycles[i] = 0;
             }
         }
     }
+
+    // static unsigned last_event_flags = 0;
+    // if (event_flags != last_event_flags) {
+    //     printf("event_flags: %04x\n", event_flags);
+    //     last_event_flags = event_flags;
+    // }
 }

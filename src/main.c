@@ -10,11 +10,12 @@
 #include <ch32v20x.h>
 #include <ch32v20x_gpio.h>
 #include <debug.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #define N_DIGITS 10
-#define CURSOR_TIMEOUT 5000
+#define CURSOR_TIMEOUT_VAL 5000  // [ms]
 
 static int64_t f_set = 25000000;
 static int digit_select = 0;
@@ -39,9 +40,7 @@ static void f_set_to_buf(char *char_buf) {
     }
 }
 
-static void store_flash() {
-    printf("TODO: store the configuration to flash here\n");
-}
+static void store_flash() { printf("TODO: store the configuration to flash here\n"); }
 
 static void display_f_set(bool is_cursor) {
     static bool is_cursor_d = true;
@@ -94,7 +93,7 @@ int main() {
     printf("SystemClk: %ld Hz\n", SystemCoreClock);
 
     lmx_init();
-    lmx_dump();
+    // lmx_dump();
 
     ssd1306_i2c_init();
     delay_ms(10);  // Give the OLED some time to come up
@@ -104,34 +103,44 @@ int main() {
     print_font_info();
 
     bool f_set_changed = false;
-    unsigned last_event_flags = 0;
-    int ts_cursor_off = millis() + CURSOR_TIMEOUT;
+    int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
+    bool is_cursor = true;
+    bool update_screen = true;
 
     while (1) {
-        poll_inputs();
+        delay_ms(30);
 
+        poll_inputs();
         unsigned event_flags = get_event_flags();
 
-        if (event_flags != last_event_flags) {
-            printf("event_flags: %04x\n", event_flags);
-            last_event_flags = event_flags;
+        if (!is_cursor) {
+            // We are in IDLE mode, if there was an event, enable the cursor and swallow it
+            if (event_flags & (EV_ROCK_SW_S | EV_ROCK_B_P | EV_ROCK_A_P | EV_ROT_CCW | EV_ROT_CW)) {
+                cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
+                get_encoder_ticks(true);  // discard potential encoder tick
+                is_cursor = true;
+            }
+            continue;
         }
 
-        if (event_flags & EV_ROCK_B_S) {
+        if (event_flags & EV_ROCK_B_P) {
             digit_select++;
             if (digit_select >= N_DIGITS)
                 digit_select = 0;
         }
-        if (event_flags & EV_ROCK_A_S) {
+
+        if (event_flags & EV_ROCK_A_P) {
             digit_select--;
             if (digit_select < 0)
                 digit_select = N_DIGITS - 1;
         }
-        if (event_flags & (EV_ROCK_A_S | EV_ROCK_B_S)) {
+
+        if (event_flags & (EV_ROCK_A_P | EV_ROCK_B_P)) {
             digit_multiplier = 1;
             for (int i = 0; i < digit_select; i++)
                 digit_multiplier *= 10;
-            ts_cursor_off = millis() + CURSOR_TIMEOUT;
+            cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
+            update_screen = true;
         }
 
         int enc = get_encoder_ticks(true);
@@ -157,12 +166,20 @@ int main() {
             print_f_plan(&g_plan);
             lmx_write_f_plan(&g_plan);
             f_set_changed = false;
+            cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
+            update_screen = true;
         }
 
-        fill(0);
-        display_f_set(millis() < ts_cursor_off);
-        // ssd1306_refresh();
+        // Timeout for disabling the cursor
+        if (millis() > cursor_timeout) {
+            is_cursor = false;
+            update_screen = true;
+        }
 
-        delay_ms(30);
+        if (update_screen) {
+            fill(0);
+            display_f_set(is_cursor);
+            ssd1306_refresh();
+        }
     }
 }
