@@ -11,7 +11,8 @@ A little clock generator for the lab. Firmware repo.
   - [x] Add back the millis() function to enable long-push button events
   - [x] Frequency plan generation
   - [x] Flash storage of last frequency
-  - [ ] Power control
+  - [x] Power control
+  - [ ] Show version on startup
   - [ ] USB serial device
   - [ ] SCPI command parser
 

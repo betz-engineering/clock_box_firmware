@@ -6,9 +6,17 @@
 // the last slot by checking if a slot is empty or not.
 // When all slots are written, erase the whole page and start again.
 
+typedef struct {
+    int64_t f_set;
+    uint8_t pwr_a_set;
+    uint8_t pwr_b_set;
+    uint8_t pwr_on_flags;
+    uint8_t digit_select;
+} t_nvm_state;
+
 #define FLASH_SAVE_ADDR 0x08007C00  // last page in 32 kB program memory
 // #define FLASH_SAVE_ADDR 0x08008000  // first page in slow (inofficial?) 128 kB flash
-#define FLASH_SLOT_SIZE 8  // [bytes] better be divisible by 4
+#define FLASH_SLOT_SIZE (sizeof(t_nvm_state))  // [bytes] better be divisible by 4
 
 // Loads the last slot into buf. Writes FLASH_SLOT_SIZE bytes into buf.
 // Returns 1 on success, 0 on failure (or empty flash)
