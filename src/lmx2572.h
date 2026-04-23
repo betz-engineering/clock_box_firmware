@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct {
@@ -10,7 +11,6 @@ typedef struct {
     uint64_t f_vco;
     uint64_t f_out;
 } t_f_plan;
-
 
 void lmx_init();
 
@@ -25,3 +25,6 @@ void print_f_plan(t_f_plan *plan);
 void lmx_write_f_plan(t_f_plan *plan);
 
 void lmx_set_outa_pwr(int val);
+void lmx_set_outb_pwr(int val);
+
+void lmx_set_output_enable(bool en_a, bool en_b);

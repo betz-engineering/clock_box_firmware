@@ -1,4 +1,5 @@
 #include "main.h"
+#include "fixed.h"
 #include "flash_slot.h"
 #include "font.h"
 #include "frame_buffer.h"
@@ -57,10 +58,13 @@ static void display_f_set(bool is_cursor) {
     const int gap = 3;
     int c_x = 0;
     init_from_header(&f_profont);
-    c_x = push_str(c_x, FB_HEIGHT / 2, char_buf, 1, A_LEFT) + gap;
-    c_x = push_str(c_x, FB_HEIGHT / 2, &char_buf[1], 3, A_LEFT) + gap;
-    c_x = push_str(c_x, FB_HEIGHT / 2, &char_buf[4], 3, A_LEFT) + gap;
-    c_x = push_str(c_x, FB_HEIGHT / 2, &char_buf[7], 3, A_LEFT);
+    c_x = push_str(c_x, FB_HEIGHT / 2, char_buf, 1, A_LEFT);
+    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[1], 3, A_LEFT);
+    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[4], 3, A_LEFT);
+    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[7], 3, A_LEFT);
+
+    init_from_header(&f_fixed);
+    push_str(FB_WIDTH, FB_HEIGHT - 1, "Hz", 4, A_RIGHT);
 
     // Draw a line above and below the selected digit
     if (is_cursor) {
@@ -103,21 +107,21 @@ int main() {
     // lmx_dump();
 
     ssd1306_i2c_init();
-    delay_ms(10);  // Give the OLED some time to come up
+    delay_ms(30);  // Give the OLED some time to come up
 
     ssd1306_init();
     init_from_header(&f_profont);
     print_font_info();
 
-    bool f_set_changed = false;
+    // Load last set-point from NVS
+    if (load_slot((uint8_t *)(&f_set)))
+        last_stored_f_set = f_set;
+
+    bool f_set_changed = true;
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
     bool is_cursor = true;
     bool update_screen = true;
-
-    if (load_slot((uint8_t *)(&f_set))) {
-        last_stored_f_set = f_set;
-        f_set_changed = true;
-    }
+    unsigned frame = 0;
 
     while (1) {
         delay_ms(30);
@@ -131,6 +135,7 @@ int main() {
                 cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
                 get_encoder_ticks(true);  // discard potential encoder tick
                 is_cursor = true;
+                update_screen = true;
             }
             continue;
         }
@@ -162,7 +167,7 @@ int main() {
         }
 
         // Reset all digits on the right of digit_select
-        if (event_flags & EV_ROCK_SW_S) {
+        if (event_flags & (EV_ROCK_SW_S | EV_ENC_SW_S)) {
             f_set -= f_set % (digit_multiplier);
             f_set_changed = true;
         }
@@ -177,6 +182,13 @@ int main() {
             get_f_plan(f_set, &g_plan);
             print_f_plan(&g_plan);
             lmx_write_f_plan(&g_plan);
+
+            if (frame == 0) {
+                lmx_set_output_enable(true, false);
+                lmx_set_outb_pwr(0);
+                lmx_set_outa_pwr(0x3F);
+            }
+
             f_set_changed = false;
             cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
             update_screen = true;
@@ -192,6 +204,9 @@ int main() {
             fill(0);
             display_f_set(is_cursor);
             ssd1306_refresh();
+            update_screen = false;
         }
+
+        frame++;
     }
 }

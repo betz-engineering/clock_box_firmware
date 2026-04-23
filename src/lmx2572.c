@@ -18,10 +18,11 @@ const static unsigned config_25MHz[] = {
     0x530000, 0x522800, 0x510000, 0x50CCCC, 0x4F004C, 0x4E0107,
     0x4D0000, 0x4C000C, 0x4B0B00, 0x4A0000, 0x49003F, 0x480001,
     0x470081, 0x46C350, 0x450000, 0x4403E8, 0x430000, 0x4201F4,
-    0x410000, 0x401388, 0x3F0000, 0x3EFCAF,  // 0xFC: enable all double buffering
+    0x410000, 0x401388, 0x3F0000,
+    0x3EFCAF,  // 0xFC: enable all double buffering
     0x3D00A8, 0x3C03E8, 0x3B0001, 0x3A9001, 0x390020, 0x380000,
     0x370000, 0x360000, 0x350000, 0x340421, 0x330080, 0x320080,
-    0x314180, 0x3003E0, 0x2F0300, 0x2E07F0, 0x2DC61F, 0x2C1FA0 | MASH_ORDER,
+    0x314180, 0x3003E0, 0x2F0300, 0x2E07F0, 0x2DC61F, 0x2C1FE0 | MASH_ORDER,
     0x2B0000, 0x2A0000, 0x290000, 0x280000, 0x270001, 0x260000,
     0x250205, 0x240032, 0x230004, 0x220010, 0x211E01, 0x2005BF,
     0x1FC3E6, 0x1E18A6, 0x1D0000, 0x1C0488, 0x1B0002, 0x1A0808,
@@ -126,17 +127,26 @@ void print_f_plan(t_f_plan *plan) {
     printf("pll_den: %ld\n\n", plan->pll_den);
 }
 
+void lmx_set_output_enable(bool en_a, bool en_b) {
+    config_r44 |= (1 << 6) | (1 << 7);
+    if (en_a)
+        config_r44 &= ~(1 << 6);  // reset OUTA_PD
+    if (en_b)
+        config_r44 &= ~(1 << 7);  // reset OUTB_PD
+    lmx_write_reg(44, config_r44);
+}
+
 void lmx_set_outa_pwr(int val) {
     config_r44 &= ~0x3F00;
     config_r44 |= (val & 0x3F) << 8;
     lmx_write_reg(44, config_r44);
 }
 
-// static void lmx_set_outb_pwr(int val) {
-//     config_r45 &= ~0x003F;
-//     config_r45 |= val & 0x3F;
-//     lmx_write_reg(45, config_r45);
-// }
+void lmx_set_outb_pwr(int val) {
+    config_r45 &= ~0x003F;
+    config_r45 |= val & 0x3F;
+    lmx_write_reg(45, config_r45);
+}
 
 static void lmx_set_ch_div(int divider) {
     // ch_div is a frequency division factor
@@ -175,14 +185,11 @@ static void lmx_set_ch_div(int divider) {
 }
 
 void lmx_write_f_plan(t_f_plan *plan) {
-    lmx_write_reg(34, 0x0010 | ((plan->pll_n >> 16) & 7));
-    lmx_write_reg(36, plan->pll_n);
-    lmx_write_reg(38, plan->pll_den >> 16);
-    lmx_write_reg(39, plan->pll_den);
-    lmx_write_reg(42, plan->pll_num >> 16);
-    lmx_write_reg(43, plan->pll_num);
-
     lmx_set_ch_div(plan->ch_div);
+    lmx_write_reg(43, plan->pll_num);
+    lmx_write_reg(42, plan->pll_num >> 16);
+    lmx_write_reg(39, plan->pll_den);
+    lmx_write_reg(38, plan->pll_den >> 16);
 
     // Adjust PH_DLY_SEL according to the N divider
     unsigned pfd_dly_sel;
@@ -199,7 +206,10 @@ void lmx_write_f_plan(t_f_plan *plan) {
 #endif
     lmx_write_reg(37, (pfd_dly_sel << 8) | 5);
 
-    // Set FCAL_EN to latch the double buffer values
+    lmx_write_reg(36, plan->pll_n);
+    lmx_write_reg(34, 0x0010 | ((plan->pll_n >> 16) & 7));
+
+    // Set FCAL_EN to latch the double-buffered values
     config_r0 |= (1 << 3);
     lmx_write_reg(0, config_r0);
 }
