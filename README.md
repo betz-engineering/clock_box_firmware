@@ -1,7 +1,8 @@
 # clock-box
-A little clock generator for the lab. Firmware repo.
+The [clock_box](https://betz-engineering.ch/open_hardware/clock_box/) is a handy little clock generator for the RF and digital electronics lab. This repo contains the firmware source-code for the CH32V203 microcontroller.
 
 # Task list
+It's a work in progress.
 
   - [x] OLED display
   - [x] Find the right-sized font
@@ -16,3 +17,17 @@ A little clock generator for the lab. Firmware repo.
   - [ ] USB serial device
   - [ ] SCPI command parser
 
+# Building it
+This project requires [platform.io](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html#installation-installer-script). Once installed, compile the firmware with
+
+```bash
+pio run
+```
+
+To put the clock_box in bootloader mode, keep the `BOOT0` button pushed while plugging in the USB cable. The power LED should turn on, the OLED should stay black and it should be possible to load the firmware with
+
+```bash
+pio run -t upload
+```
+
+For development work I was using a WCH-link E dongle connected to the debug header of the clock_box. See comments in platformio.ini on how to build a debug version with printf support.
