@@ -1,4 +1,4 @@
-# clock-box
+# clock_box
 The [clock_box](https://betz-engineering.ch/open_hardware/clock_box/) is a handy little clock generator for the RF and digital electronics lab. This repo contains the firmware source-code for the CH32V203 microcontroller.
 
 # Task list
