@@ -33,7 +33,9 @@ const static unsigned config_25MHz[] = {
     0x010808, 0x00209C,
 };
 
-static const uint64_t F_PD = 64000000;  // Phase detector frequency when locked in [Hz]
+static const uint64_t F_PD = 64000000;         // Phase detector frequency when locked in [Hz]
+static const uint64_t F_VCO_MAX = 6400000000;  // Max. frequency limit of the VCO
+static const uint64_t F_VCO_MIN = 3200000000;  // Min. frequency limit of the VCO
 
 // These get overwritten with the values from config_25MHz
 static uint16_t config_r0 = 0, config_r44 = 0x22a2, config_r45 = 0xc622;
@@ -79,9 +81,11 @@ void lmx_dump() {
         printf("R%03d: %04x\n", i, lmx_read_reg(i));
 }
 
+// Return the output channel divider value to get the
+// VCO frequency close to the max. limit
 static int get_ch_div(uint64_t f_set) {
     int ch_div = 1;
-    uint64_t f_vco = 6400000000 >> 1;
+    uint64_t f_vco = F_VCO_MAX >> 1;
     while (ch_div < 256) {
         if (f_set >= f_vco)
             return ch_div;
@@ -101,9 +105,15 @@ static uint32_t calculate_gcd(uint32_t a, uint32_t b) {
     return a;
 }
 
-void get_f_plan(uint64_t f_set, t_f_plan *plan) {
+bool get_f_plan(uint64_t f_set, t_f_plan *plan) {
     int ch_div = get_ch_div(f_set);
+    if (ch_div <= 0)
+        return false;
+
     uint64_t f_vco = f_set * ch_div;
+    if (f_vco > F_VCO_MAX || f_vco < F_VCO_MIN)
+        return false;
+
     int pll_n = f_vco / F_PD;
     uint32_t pll_num = f_vco - pll_n * F_PD;
 
@@ -115,12 +125,13 @@ void get_f_plan(uint64_t f_set, t_f_plan *plan) {
     plan->pll_den = F_PD / gcd;
     plan->f_vco = f_vco;
     plan->f_out = f_set;
+    return true;
 }
 
 void print_f_plan(t_f_plan *plan) {
-    // horrible hack because printf doesn't support 64 bit int
-    printf("  f_out: %u%u Hz\n", (unsigned)(plan->f_out / 1000), (unsigned)(plan->f_out % 1000));
-    printf("  f_vco: %u%u Hz\n", (unsigned)(plan->f_vco / 1000), (unsigned)(plan->f_vco % 1000));
+    // horrible hack because the included printf doesn't support 64 bit int
+    printf("  f_out: %u%u Hz\n", (unsigned)(plan->f_out / 10000), (unsigned)(plan->f_out % 10000));
+    printf("  f_vco: %u%u Hz\n", (unsigned)(plan->f_vco / 10000), (unsigned)(plan->f_vco % 10000));
     printf(" ch_div: %ld\n", plan->ch_div);
     printf("  pll_n: %ld\n", plan->pll_n);
     printf("pll_num: %ld\n", plan->pll_num);
@@ -149,7 +160,9 @@ void lmx_set_outb_pwr(int val) {
 }
 
 static void lmx_set_ch_div(int divider) {
-    // ch_div is a frequency division factor
+    // ch_div is a frequency division factor within 1 to 256
+    // only the divider = 2^x values are valid
+
     // Set the OUTA_MUX. 0 = use channel divider
     config_r45 &= ~((1 << 11) | (1 << 12));
     if (divider == 1)
@@ -161,27 +174,27 @@ static void lmx_set_ch_div(int divider) {
         return;
 
     // Set the channel divider value
-    unsigned ch_div_code = 14;
+    unsigned code = 14;
     if (divider == 2)
-        ch_div_code = 0;
+        code = 0;
     else if (divider == 4)
-        ch_div_code = 1;
+        code = 1;
     else if (divider == 8)
-        ch_div_code = 3;
+        code = 3;
     else if (divider == 16)
-        ch_div_code = 5;
+        code = 5;
     else if (divider == 32)
-        ch_div_code = 7;
+        code = 7;
     else if (divider == 64)
-        ch_div_code = 9;
+        code = 9;
     else if (divider == 128)
-        ch_div_code = 12;
+        code = 12;
     else if (divider == 256)
-        ch_div_code = 14;
+        code = 14;
     else
-        printf("Error: Illegal output divider value: %d. Falling back to 14.\n", divider);
+        printf("Error: Illegal output divider value: %d. Falling back to 256.\n", divider);
 
-    lmx_write_reg(75, (1 << 11) | (ch_div_code << 6));
+    lmx_write_reg(75, (1 << 11) | (code << 6));
 }
 
 void lmx_write_f_plan(t_f_plan *plan) {
