@@ -173,6 +173,7 @@ int main() {
                 get_encoder_ticks(true);  // discard potential encoder tick
                 is_cursor_on = true;
                 update_screen = true;
+                continue;
             }
             if (millis() > 3000 && !update_screen)
                 continue;
