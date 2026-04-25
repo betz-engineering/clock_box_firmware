@@ -64,7 +64,6 @@ static void store_flash() {
 }
 
 static void display_f_set(bool is_cursor) {
-    static bool is_cursor_d = true;
     char char_buf[N_DIGITS + 1];
     f_set_to_buf(char_buf);
 
@@ -90,11 +89,6 @@ static void display_f_set(bool is_cursor) {
         draw_line(x_start, 0, x_end, 0);
         draw_line(x_start, 17, x_end, 17);
     }
-
-    // When the cursor times out, store parameters to flash
-    if (is_cursor_d && !is_cursor)
-        store_flash();
-    is_cursor_d = is_cursor;
 }
 
 int main() {
@@ -251,6 +245,8 @@ int main() {
 
         // Timeout for disabling the cursor
         if (millis() > cursor_timeout) {
+            // When the cursor times out, store parameters to flash
+            store_flash();
             is_cursor_on = false;
             update_screen = true;
         }
@@ -261,7 +257,7 @@ int main() {
             init_from_header(&f_missingplanet);
 
             if (millis() > 2500 || is_cursor_on) {
-                if (g_digit_select <= 2 || !is_cursor_on)
+                if (g_digit_select <= 2 || !is_cursor_on || mode_select != M_ADJ_DIGITS)
                     push_str(FB_WIDTH, FB_HEIGHT, "Hz", 4, A_RIGHT);
                 else if (g_digit_select <= 5)
                     push_str(FB_WIDTH, FB_HEIGHT, "kHz", 4, A_RIGHT);
