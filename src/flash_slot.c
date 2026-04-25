@@ -36,14 +36,14 @@ int load_slot(uint8_t *buf) {
             uint32_t *chk =
                 (uint32_t *)(FLASH_SAVE_ADDR + (i * FLASH_SLOT_SIZE_CHK) + FLASH_SLOT_SIZE);
             if (*chk == calculate_checksum((uint32_t *)buf)) {
-                printf("load_slot(%d): success!\n", i);
+                D("load_slot(%d): success!\n", i);
                 return 1;
             } else {
-                printf("load_slot(%d): checksum failed\n", i);
+                D("load_slot(%d): checksum failed\n", i);
             }
         }
     }
-    printf("load_slot() failed: all slots empty\n");
+    D("load_slot() failed: all slots empty\n");
     return 0;
 }
 
@@ -58,7 +58,7 @@ void save_slot(uint8_t *buf) {
         }
     }
 
-    printf("save_slot() target: %d\n", target_slot);
+    D("save_slot() target: %d\n", target_slot);
 
     __disable_irq();
     FLASH_Unlock();

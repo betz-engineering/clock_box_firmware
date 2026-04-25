@@ -207,7 +207,7 @@ void poll_inputs() {
     uint16_t pb_val = GPIO_ReadInputData(GPIOB);
     uint16_t pd_val = GPIO_ReadInputData(GPIOD);
 
-    // printf("ENC: %d %d %d   SW: %d %d %d\n",
+    // D("ENC: %d %d %d   SW: %d %d %d\n",
     //        (pb_val & PINB_ENC_B) > 0,
     //        (pb_val & PINB_ENC_A) > 0,
     //        (pb_val & PINB_ENC_SW) > 0,
@@ -254,7 +254,7 @@ void poll_inputs() {
 
     // static unsigned last_event_flags = 0;
     // if (event_flags != last_event_flags) {
-    //     printf("event_flags: %04x\n", event_flags);
+    //     D("event_flags: %04x\n", event_flags);
     //     last_event_flags = event_flags;
     // }
 }

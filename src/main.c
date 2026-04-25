@@ -110,8 +110,8 @@ int main() {
     delay_ms(1000);
 #endif
 
-    printf("Hello World! This is clock_box!!\n");
-    printf("SystemClk: %ld Hz\n", SystemCoreClock);
+    D("Hello World! This is clock_box!!\n");
+    D("SystemClk: %ld Hz\n", SystemCoreClock);
 
     // Init tiny-USB
     tud_init(BOARD_TUD_RHPORT);
@@ -133,9 +133,9 @@ int main() {
         g_pwr_a_on = loaded_state.pwr_on_flags & 1;
         g_pwr_a_set = loaded_state.pwr_a_set;
     }
-    printf("g_digit_select: %d\n", g_digit_select);
-    printf("g_pwr_a_on: %d\n", g_pwr_a_on);
-    printf("g_pwr_a_set: %d\n", g_pwr_a_set);
+    D("g_digit_select: %d\n", g_digit_select);
+    D("g_pwr_a_on: %d\n", g_pwr_a_on);
+    D("g_pwr_a_set: %d\n", g_pwr_a_set);
 
     bool f_set_changed = true;
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;

@@ -106,7 +106,7 @@ char *errstr[] = {
  */
 uint8_t ssd1306_i2c_error(uint8_t err) {
     // report error
-    printf("ssd1306_i2c_error - timeout waiting for %s\n\r", errstr[err]);
+    D("ssd1306_i2c_error - timeout waiting for %s\n\r", errstr[err]);
 
     // reset & initialize I2C
     ssd1306_i2c_setup();

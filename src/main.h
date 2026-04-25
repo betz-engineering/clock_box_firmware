@@ -7,6 +7,13 @@
 
 #define TITLE_STR ("clock_box " GIT_REV)
 
+#if (DEBUG)
+#include <stdio.h>
+#define D(format, ...) printf(format, ##__VA_ARGS__)
+#else
+#define D(X...)
+#endif
+
 // PORTA
 #define PINA_LMX_SREF (1 << 1)
 #define PINA_LMX_SYNC (1 << 2)

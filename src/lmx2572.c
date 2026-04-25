@@ -63,7 +63,7 @@ void lmx_init() {
 
 void lmx_dump() {
     for (int i = 0; i < 128; i++)
-        printf("R%03d: %04x\n", i, lmx_read_reg(i));
+        D("R%03d: %04x\n", i, lmx_read_reg(i));
 }
 
 // Return the output channel divider value to get the
@@ -115,12 +115,12 @@ bool get_f_plan(uint64_t f_set, t_f_plan *plan) {
 
 void print_f_plan(t_f_plan *plan) {
     // horrible hack because the included printf doesn't support 64 bit int
-    printf("  f_out: %u%u Hz\n", (unsigned)(plan->f_out / 10000), (unsigned)(plan->f_out % 10000));
-    printf("  f_vco: %u%u Hz\n", (unsigned)(plan->f_vco / 10000), (unsigned)(plan->f_vco % 10000));
-    printf(" ch_div: %ld\n", plan->ch_div);
-    printf("  pll_n: %ld\n", plan->pll_n);
-    printf("pll_num: %ld\n", plan->pll_num);
-    printf("pll_den: %ld\n\n", plan->pll_den);
+    D("  f_out: %u%u Hz\n", (unsigned)(plan->f_out / 10000), (unsigned)(plan->f_out % 10000));
+    D("  f_vco: %u%u Hz\n", (unsigned)(plan->f_vco / 10000), (unsigned)(plan->f_vco % 10000));
+    D(" ch_div: %ld\n", plan->ch_div);
+    D("  pll_n: %ld\n", plan->pll_n);
+    D("pll_num: %ld\n", plan->pll_num);
+    D("pll_den: %ld\n\n", plan->pll_den);
 }
 
 void lmx_set_output_enable(bool en_a, bool en_b) {
@@ -177,7 +177,7 @@ static void lmx_set_ch_div(int divider) {
     else if (divider == 256)
         code = 14;
     else
-        printf("Error: Illegal output divider value: %d. Falling back to 256.\n", divider);
+        D("Error: Illegal output divider value: %d. Falling back to 256.\n", divider);
 
     lmx_write_reg(75, (1 << 11) | (code << 6));
 }
