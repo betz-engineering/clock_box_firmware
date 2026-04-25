@@ -128,10 +128,13 @@ int main() {
         g_pwr_a_on = loaded_state.pwr_on_flags & 1;
         g_pwr_a_set = loaded_state.pwr_a_set;
     }
+    printf("g_digit_select: %d\n", g_digit_select);
+    printf("g_pwr_a_on: %d\n", g_pwr_a_on);
+    printf("g_pwr_a_set: %d\n", g_pwr_a_set);
 
     bool f_set_changed = true;
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
-    bool is_cursor_on = false;
+    bool is_cursor_on = DEBUG;
     bool update_screen = true;
     unsigned frame = 0;
     enum { M_ADJ_DIGITS, M_ADJ_POWER } mode_select = M_ADJ_DIGITS;
@@ -266,7 +269,7 @@ int main() {
                 else
                     push_print(0, FB_HEIGHT, A_LEFT, "PWR  %d", g_pwr_a_set);
 
-                push_print(60, FB_HEIGHT, A_LEFT, g_pwr_a_on ? "RF Off" : "RF On");
+                push_print(60, FB_HEIGHT, A_LEFT, g_pwr_a_on ? "RF On" : "RF Off");
                 update_screen = false;
             } else {
                 int x = 200 - frame * 2;
