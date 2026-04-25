@@ -27,13 +27,15 @@ static int g_pwr_a_set = 0x1f;
 static bool g_pwr_a_on = true;
 static int g_digit_select = 0;
 static int64_t digit_multiplier = 1;
+static bool f_set_changed = true;
+static bool update_screen = true;
 
 static t_nvm_state loaded_state = {0};
 static t_f_plan g_plan = {0};
 
 // Convert the 64 bit integer f_set to 10 characters
 // Can't use snprintf as there is no 64 bit support :(
-static void f_set_to_buf(char *char_buf) {
+void f_set_to_buf(char *char_buf) {
     int64_t temp = g_f_set;
     char_buf[N_DIGITS] = '\0';
 
@@ -47,6 +49,26 @@ static void f_set_to_buf(char *char_buf) {
         }
     }
 }
+
+bool set_f_set(int64_t f_set) {
+    if (f_set < F_MIN || f_set > F_MAX)
+        return false;
+    g_f_set = f_set;
+    f_set_changed = true;
+    update_screen = true;
+    return true;
+}
+
+bool set_p_set(int val) {
+    if (val < 0 || val > 0x3f)
+        return false;
+    g_pwr_a_set = val;
+    lmx_set_outa_pwr(val);
+    update_screen = true;
+    return true;
+}
+
+int get_p_set(void) { return g_pwr_a_set; }
 
 static void store_flash() {
     t_nvm_state current_state = {
@@ -131,10 +153,8 @@ int main() {
     D("g_pwr_a_on: %d\n", g_pwr_a_on);
     D("g_pwr_a_set: %d\n", g_pwr_a_set);
 
-    bool f_set_changed = true;
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
     bool is_cursor_on = DEBUG;
-    bool update_screen = true;
     unsigned frame = 0;
     enum { M_ADJ_DIGITS, M_ADJ_POWER } mode_select = M_ADJ_DIGITS;
 
@@ -154,7 +174,7 @@ int main() {
                 is_cursor_on = true;
                 update_screen = true;
             }
-            if (millis() > 3000)
+            if (millis() > 3000 && !update_screen)
                 continue;
         }
 
@@ -204,10 +224,10 @@ int main() {
 
             if (f_set_changed) {
                 // Enforce absolute frequency limits
-                if (g_f_set < 12500000)
-                    g_f_set = 12500000;
-                if (g_f_set > 6400000000)
-                    g_f_set = 6400000000;
+                if (g_f_set < F_MIN)
+                    g_f_set = F_MIN;
+                if (g_f_set > F_MAX)
+                    g_f_set = F_MAX;
 
                 get_f_plan(g_f_set, &g_plan);
                 print_f_plan(&g_plan);
@@ -266,12 +286,18 @@ int main() {
                 else if (g_digit_select <= 11)
                     push_str(FB_WIDTH, FB_HEIGHT, "GHz", 4, A_RIGHT);
 
-                if (is_cursor_on && (mode_select == M_ADJ_POWER))
-                    push_print(0, FB_HEIGHT, A_LEFT, "PWR [%d]", g_pwr_a_set);
-                else
-                    push_print(0, FB_HEIGHT, A_LEFT, "PWR  %d", g_pwr_a_set);
-
-                push_print(60, FB_HEIGHT, A_LEFT, g_pwr_a_on ? "RF On" : "RF Off");
+                static char buf[] = "PWR [00]";
+                buf[5] = g_pwr_a_set / 10 + '0';
+                buf[6] = g_pwr_a_set % 10 + '0';
+                if (is_cursor_on && (mode_select == M_ADJ_POWER)) {
+                    buf[4] = '[';
+                    buf[7] = ']';
+                } else {
+                    buf[4] = ' ';
+                    buf[7] = ' ';
+                }
+                push_str(0, FB_HEIGHT, buf, 8, A_LEFT);
+                push_str(60, FB_HEIGHT, g_pwr_a_on ? "RF On" : "RF Off", 6, A_LEFT);
                 update_screen = false;
             } else {
                 int x = 200 - frame * 2;

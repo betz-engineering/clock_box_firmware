@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef GIT_REV
@@ -13,6 +14,9 @@
 #else
 #define D(X...)
 #endif
+
+#define F_MIN 12500000
+#define F_MAX 6400000000
 
 // PORTA
 #define PINA_LMX_SREF (1 << 1)
@@ -37,3 +41,9 @@
 
 // PORTD
 #define PIND_ROCK_SW (1 << 0)
+
+bool set_p_set(int val);
+int get_p_set(void);
+
+void f_set_to_buf(char *char_buf);
+bool set_f_set(int64_t f_set);

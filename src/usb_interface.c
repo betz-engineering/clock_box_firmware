@@ -4,22 +4,49 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 
 //--------------------------------------------------------------------+
 // USB CDC
 //--------------------------------------------------------------------+
-uint8_t line_buf[128] = {0};
+char line_buf[128] = {0};
 int line_buf_n = 0;
 
 static void process_command() {
     if (memcmp(line_buf, "*IDN?", 5) == 0) {
-        tud_cdc_n_write(0, TITLE_STR, sizeof(TITLE_STR) - 1);
-        tud_cdc_n_write(0, "\n\r", 1);
+        tud_cdc_n_write(0, "Betz Engineering,clock_box,", 27);
+        tud_cdc_n_write(0, "xxx", 3);  // TODO add serial number
+        tud_cdc_n_write(0, ",", 1);
+        tud_cdc_n_write(0, GIT_REV, sizeof(GIT_REV) - 1);
+        tud_cdc_n_write(0, "\n", 1);
+    } else if (memcmp(line_buf, "f?", 2) == 0) {
+        f_set_to_buf(line_buf);
+        tud_cdc_n_write(0, line_buf, strlen(line_buf));
+        tud_cdc_n_write(0, " Hz\n", 4);
+    } else if (memcmp(line_buf, "f ", 2) == 0) {
+        int64_t tmp = strtoll(&line_buf[1], NULL, 0);
+        if (set_f_set(tmp))
+            tud_cdc_n_write(0, "OK\n", 3);
+        else
+            tud_cdc_n_write(0, "ERROR\n", 6);
+    } else if (memcmp(line_buf, "p?", 2) == 0) {
+        itoa(get_p_set(), line_buf, 10);
+        tud_cdc_n_write(0, line_buf, strlen(line_buf));
+        tud_cdc_n_write(0, "\n", 1);
+    } else if (memcmp(line_buf, "p ", 2) == 0) {
+        int tmp = strtol(&line_buf[1], NULL, 0);
+        if (set_p_set(tmp))
+            tud_cdc_n_write(0, "OK\n", 3);
+        else
+            tud_cdc_n_write(0, "ERROR\n", 6);
+    } else if (memcmp(line_buf, "h?", 2) == 0) {
+        tud_cdc_n_write(0, "*IDN? = identify\n", 17);
+        tud_cdc_n_write(0, "f / f? = freq. [Hz]\n", 20);
+        tud_cdc_n_write(0, "p / p? = power [0 - 63]\n", 24);
     } else {
-        tud_cdc_n_write(0, "??? ", 4);
-        tud_cdc_n_write(0, line_buf, line_buf_n);
+        tud_cdc_n_write(0, "Unknown command. Use h? for help\n", 33);
     }
 }
 
