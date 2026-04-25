@@ -8,6 +8,9 @@
 #include "profont.h"
 #include "ssd1306_i2c.h"
 #include "ssd1306_j.h"
+#include "tusb.h"
+#include "tusb_config.h"
+#include "usb_interface.h"
 #include "user_input.h"
 #include <ch32v20x.h>
 #include <ch32v20x_gpio.h>
@@ -110,7 +113,9 @@ int main() {
     printf("Hello World! This is clock_box!!\n");
     printf("SystemClk: %ld Hz\n", SystemCoreClock);
 
-    // Todo disable outputs in init
+    // Init tiny-USB
+    tud_init(BOARD_TUD_RHPORT);
+
     lmx_init();
     // lmx_dump();
 
@@ -140,7 +145,8 @@ int main() {
     enum { M_ADJ_DIGITS, M_ADJ_POWER } mode_select = M_ADJ_DIGITS;
 
     while (1) {
-        delay_ms(30);
+        tud_task();
+        cdc_task();
 
         poll_inputs();
         unsigned event_flags = get_event_flags();
@@ -154,7 +160,7 @@ int main() {
                 is_cursor_on = true;
                 update_screen = true;
             }
-            if (frame > 131)
+            if (millis() > 3000)
                 continue;
         }
 
@@ -254,7 +260,7 @@ int main() {
             display_f_set(is_cursor_on && (mode_select == M_ADJ_DIGITS));
             init_from_header(&f_missingplanet);
 
-            if (frame > 130 || is_cursor_on) {
+            if (millis() > 2500 || is_cursor_on) {
                 if (g_digit_select <= 2 || !is_cursor_on)
                     push_str(FB_WIDTH, FB_HEIGHT, "Hz", 4, A_RIGHT);
                 else if (g_digit_select <= 5)
@@ -275,7 +281,7 @@ int main() {
                 int x = 200 - frame * 2;
                 if (x <= (FB_WIDTH / 2))
                     x = FB_WIDTH / 2;
-                push_str(x, FB_HEIGHT - 2, "clock_box " GIT_REV, 64, A_CENTER);
+                push_str(x, FB_HEIGHT - 2, TITLE_STR, sizeof(TITLE_STR), A_CENTER);
             }
 
             ssd1306_refresh();

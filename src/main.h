@@ -1,5 +1,12 @@
 #pragma once
 #include <stdint.h>
+
+#ifndef GIT_REV
+#define GIT_REV "?"
+#endif
+
+#define TITLE_STR ("clock_box " GIT_REV)
+
 // PORTA
 #define PINA_LMX_SREF (1 << 1)
 #define PINA_LMX_SYNC (1 << 2)

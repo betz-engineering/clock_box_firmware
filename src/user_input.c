@@ -1,5 +1,7 @@
 #include "user_input.h"
 #include "main.h"
+#include "tusb.h"
+#include "usb_interface.h"
 #include <ch32v20x.h>
 #include <ch32v20x_gpio.h>
 #include <stdio.h>
@@ -9,6 +11,28 @@
 
 static unsigned event_flags = 0;
 static volatile int enc_sum = 0;
+
+// -----------------------------
+//  USB interrupts
+// -----------------------------
+// Port0: USBD (fsdev)
+__attribute__((interrupt)) __attribute__((used)) void USB_LP_CAN1_RX0_IRQHandler(void) {
+#if CFG_TUD_WCH_USBIP_FSDEV
+    tud_int_handler(0);
+#endif
+}
+
+__attribute__((interrupt)) __attribute__((used)) void USB_HP_CAN1_TX_IRQHandler(void) {
+#if CFG_TUD_WCH_USBIP_FSDEV
+    tud_int_handler(0);
+#endif
+}
+
+__attribute__((interrupt)) __attribute__((used)) void USBWakeUp_IRQHandler(void) {
+#if CFG_TUD_WCH_USBIP_FSDEV
+    tud_int_handler(0);
+#endif
+}
 
 // -----------------------------
 //  Systick interrupt
@@ -156,6 +180,12 @@ void peripherals_init() {
     spi_cfg.SPI_NSS = SPI_NSS_Soft;
     SPI_Init(SPI1, &spi_cfg);
     SPI_Cmd(SPI1, ENABLE);
+
+    // --------
+    //  USB
+    // --------
+    RCC_USBCLKConfig(RCC_USBCLKSource_PLLCLK_Div3);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USB, ENABLE);  // FSDEV (port 0)
 }
 
 uint8_t spi_rxtx(uint8_t val) {
@@ -227,18 +257,4 @@ void poll_inputs() {
     //     printf("event_flags: %04x\n", event_flags);
     //     last_event_flags = event_flags;
     // }
-}
-
-uint32_t Lib_Write_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf) {
-    FLASH_Unlock_Fast();
-    FLASH_ErasePage_Fast(addr);
-    FLASH_ProgramPage_Fast(addr, pBuf);
-    FLASH_Lock_Fast();
-    delay_ms(1);
-    return 0;
-}
-
-uint32_t Lib_Read_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf) {
-    memcpy(pBuf, (uint32_t *)addr, num * 4);
-    return 0;
 }
