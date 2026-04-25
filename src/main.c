@@ -131,7 +131,7 @@ int main() {
 
     bool f_set_changed = true;
     int cursor_timeout = millis() + CURSOR_TIMEOUT_VAL;
-    bool is_cursor_on = true;
+    bool is_cursor_on = false;
     bool update_screen = true;
     unsigned frame = 0;
     enum { M_ADJ_DIGITS, M_ADJ_POWER } mode_select = M_ADJ_DIGITS;
@@ -151,7 +151,8 @@ int main() {
                 is_cursor_on = true;
                 update_screen = true;
             }
-            continue;
+            if (frame > 131)
+                continue;
         }
 
         if (event_flags & EV_ENC_SW_S) {
@@ -250,24 +251,31 @@ int main() {
             display_f_set(is_cursor_on && (mode_select == M_ADJ_DIGITS));
             init_from_header(&f_missingplanet);
 
-            if (g_digit_select <= 2 || !is_cursor_on)
-                push_str(FB_WIDTH, FB_HEIGHT, "Hz", 4, A_RIGHT);
-            else if (g_digit_select <= 5)
-                push_str(FB_WIDTH, FB_HEIGHT, "kHz", 4, A_RIGHT);
-            else if (g_digit_select <= 8)
-                push_str(FB_WIDTH, FB_HEIGHT, "MHz", 4, A_RIGHT);
-            else if (g_digit_select <= 11)
-                push_str(FB_WIDTH, FB_HEIGHT, "GHz", 4, A_RIGHT);
+            if (frame > 130 || is_cursor_on) {
+                if (g_digit_select <= 2 || !is_cursor_on)
+                    push_str(FB_WIDTH, FB_HEIGHT, "Hz", 4, A_RIGHT);
+                else if (g_digit_select <= 5)
+                    push_str(FB_WIDTH, FB_HEIGHT, "kHz", 4, A_RIGHT);
+                else if (g_digit_select <= 8)
+                    push_str(FB_WIDTH, FB_HEIGHT, "MHz", 4, A_RIGHT);
+                else if (g_digit_select <= 11)
+                    push_str(FB_WIDTH, FB_HEIGHT, "GHz", 4, A_RIGHT);
 
-            if (is_cursor_on && (mode_select == M_ADJ_POWER))
-                push_print(0, FB_HEIGHT, A_LEFT, "PWR [%d]", g_pwr_a_set);
-            else
-                push_print(0, FB_HEIGHT, A_LEFT, "PWR  %d", g_pwr_a_set);
+                if (is_cursor_on && (mode_select == M_ADJ_POWER))
+                    push_print(0, FB_HEIGHT, A_LEFT, "PWR [%d]", g_pwr_a_set);
+                else
+                    push_print(0, FB_HEIGHT, A_LEFT, "PWR  %d", g_pwr_a_set);
 
-            push_print(60, FB_HEIGHT, A_LEFT, g_pwr_a_on ? "RF Off" : "RF On");
+                push_print(60, FB_HEIGHT, A_LEFT, g_pwr_a_on ? "RF Off" : "RF On");
+                update_screen = false;
+            } else {
+                int x = 200 - frame * 2;
+                if (x <= (FB_WIDTH / 2))
+                    x = FB_WIDTH / 2;
+                push_str(x, FB_HEIGHT - 2, "clock_box " GIT_REV, 64, A_CENTER);
+            }
 
             ssd1306_refresh();
-            update_screen = false;
         }
 
         frame++;
