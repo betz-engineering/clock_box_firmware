@@ -2,7 +2,7 @@
 The [clock_box](https://betz-engineering.ch/open_hardware/clock_box/) is a handy little clock generator for the RF and digital electronics lab. This repo contains the firmware source-code for the CH32V203 microcontroller.
 
 # Task list
-It's a work in progress.
+Feature complete!
 
   - [x] OLED display
   - [x] Find the right-sized font
@@ -13,9 +13,9 @@ It's a work in progress.
   - [x] Frequency plan generation
   - [x] Flash storage of last frequency
   - [x] Power control
-  - [ ] Show version on startup
-  - [ ] USB serial device
-  - [ ] SCPI command parser
+  - [x] Show version on startup
+  - [x] USB serial device
+  - [x] SCPI command parser
 
 # Building it
 This project requires [platform.io](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html#installation-installer-script). Once installed, compile the firmware with
