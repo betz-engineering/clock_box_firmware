@@ -14,8 +14,9 @@ typedef struct {
     uint8_t digit_select;
 } t_nvm_state;
 
-// #define FLASH_SAVE_ADDR 0x08007C00  // last page in 32 kB program memory
-#define FLASH_SAVE_ADDR 0x08008000             // first page in slow 128 kB flash
+// #define FLASH_SAVE_ADDR 0x08007C00  // last page in fast 32 kB program memory
+// #define FLASH_SAVE_ADDR 0x08008000  // first page in slow flash
+#define FLASH_SAVE_ADDR 0x08037c00             // last page in slow 224 kB flash
 #define FLASH_SLOT_SIZE (sizeof(t_nvm_state))  // [bytes] better be divisible by 4
 
 // Loads the last slot into buf. Writes FLASH_SLOT_SIZE bytes into buf.
