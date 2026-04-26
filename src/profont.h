@@ -4,6 +4,8 @@
 // -----------------------------------
 //  ProFont
 // -----------------------------------
+// font_converter.py --add-range 0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39 --height 22 profontn.otb
+// X.Org converted bitmap font
 
 static const uint8_t glyphs_profont[180] = {
  63, 31,238, 31,  7,195,241,252,239,115,248,252, 62, 15,135,127,143,192, 12,  3,  7,193,240, 12,

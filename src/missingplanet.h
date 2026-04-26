@@ -4,6 +4,8 @@
 // -----------------------------------
 //  MissingPlanet
 // -----------------------------------
+// font_converter.py --height 16 --add-ascii MissingPlanet.ttf --bpp 1
+// Extant
 
 static const uint8_t glyphs_missingplanet[473] = {
 254,128,182,128, 82,190,165, 43,234, 80, 39,233, 74,124,165, 47,200,237,122, 34, 34,245,184,249,
