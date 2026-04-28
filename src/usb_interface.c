@@ -14,10 +14,38 @@
 char line_buf[128] = {0};
 int line_buf_n = 0;
 
+static void put_hex(uint32_t val, uint8_t digits, char *p) {
+    const char lut[] = "0123456789ABCDEF";
+
+    for (int i = 0; i < 4 * digits; i += 8) {
+        *p++ = lut[(val >> (i + 4)) % 16];
+        *p++ = lut[(val >> i) % 16];
+    }
+}
+
+// Will write R-_<unique_id in hex> (27 characters) to desc_str
+static int ui_to_usb_get_serial(char *desc_str) {
+    char *p = desc_str;
+    *p++ = 'R';
+    *p++ = PCB_REV;
+    *p++ = '_';
+    // Append 12 byte unique ID
+    volatile uint32_t *ch32_uuid = ((volatile uint32_t *)0x1FFFF7E8UL);
+    put_hex(ch32_uuid[0], 8, p);
+    p += 8;
+    put_hex(ch32_uuid[1], 8, p);
+    p += 8;
+    put_hex(ch32_uuid[2], 8, p);
+
+    return 27;
+}
+
 static void process_command() {
     if (memcmp(line_buf, "*IDN?", 5) == 0) {
         tud_cdc_n_write(0, "Betz Engineering,clock_box,", 27);
-        tud_cdc_n_write(0, "xxx", 3);  // TODO add serial number
+        int n = ui_to_usb_get_serial(line_buf);
+        tud_cdc_n_write(0, line_buf, n);
+        tud_cdc_n_write_flush(0);
         tud_cdc_n_write(0, ",", 1);
         tud_cdc_n_write(0, GIT_REV, sizeof(GIT_REV) - 1);
         tud_cdc_n_write(0, "\n", 1);
@@ -41,12 +69,13 @@ static void process_command() {
             tud_cdc_n_write(0, "OK\n", 3);
         else
             tud_cdc_n_write(0, "ERROR\n", 6);
-    } else if (memcmp(line_buf, "h?", 2) == 0) {
+    } else if (line_buf[0] == '?') {
         tud_cdc_n_write(0, "*IDN? = identify\n", 17);
-        tud_cdc_n_write(0, "f / f? = freq. [Hz]\n", 20);
-        tud_cdc_n_write(0, "p / p? = power [0 - 63]\n", 24);
+        tud_cdc_n_write(0, "f / f? = set / get frequency [Hz]\n", 34);
+        tud_cdc_n_write_flush(0);
+        tud_cdc_n_write(0, "p / p? = set / get power [0 - 63]\n", 34);
     } else {
-        tud_cdc_n_write(0, "Unknown command. Use h? for help\n", 33);
+        tud_cdc_n_write(0, "Unknown command. ? for help\n", 28);
     }
 }
 

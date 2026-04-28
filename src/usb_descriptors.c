@@ -96,10 +96,10 @@ static void put_hex(uint32_t val, uint8_t digits, uint16_t *p) {
 }
 
 // Will write R-_<unique_id in hex> (27 characters) to desc_str
-int ui_to_usb_get_serial(uint16_t *desc_str) {
+static int ui_to_usb_get_serial(uint16_t *desc_str) {
     uint16_t *p = desc_str;
     *p++ = 'R';
-    *p++ = '-';
+    *p++ = PCB_REV;
     *p++ = '_';
     // Append 12 byte unique ID
     volatile uint32_t *ch32_uuid = ((volatile uint32_t *)0x1FFFF7E8UL);
