@@ -91,12 +91,11 @@ static void display_f_set(bool is_cursor) {
 
     // Micro-manage the gaps between number-groups
     const int gap = 3;
-    int c_x = 0;
-    init_from_header(&f_profont);
-    c_x = push_str(c_x, FB_HEIGHT / 2, char_buf, 1, A_LEFT);
-    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[1], 3, A_LEFT);
-    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[4], 3, A_LEFT);
-    c_x = push_str(c_x + gap, FB_HEIGHT / 2, &char_buf[7], 3, A_LEFT);
+    fnt_init_from_header(&f_profont);
+    fnt_bbox_t bb = fnt_draw_text(0, FB_HEIGHT / 2, char_buf, 1, H_LEFT);
+    bb = fnt_draw_text(bb.right + 2 + gap, FB_HEIGHT / 2, &char_buf[1], 3, H_LEFT);
+    bb = fnt_draw_text(bb.right + 2 + gap, FB_HEIGHT / 2, &char_buf[4], 3, H_LEFT);
+    bb = fnt_draw_text(bb.right + 2 + gap, FB_HEIGHT / 2, &char_buf[7], 3, H_LEFT);
 
     // Draw a line above and below the selected digit
     if (is_cursor) {
@@ -139,8 +138,8 @@ int main() {
     delay_ms(30);  // Give the OLED some time to come up
 
     ssd1306_init();
-    init_from_header(&f_profont);
-    print_font_info();
+    fnt_init_from_header(&f_profont);
+    fnt_print_info();
 
     // Load last set-point from NVS
     if (load_slot((uint8_t *)(&loaded_state))) {
@@ -275,17 +274,17 @@ int main() {
         if (update_screen) {
             fill(0);
             display_f_set(is_cursor_on && (mode_select == M_ADJ_DIGITS));
-            init_from_header(&f_missingplanet);
+            fnt_init_from_header(&f_missingplanet);
 
             if (millis() > 2500 || is_cursor_on) {
                 if (g_digit_select <= 2 || !is_cursor_on || mode_select != M_ADJ_DIGITS)
-                    push_str(FB_WIDTH, FB_HEIGHT, "Hz", 4, A_RIGHT);
+                    fnt_draw_text(FB_WIDTH, FB_HEIGHT, "Hz", 4, H_RIGHT);
                 else if (g_digit_select <= 5)
-                    push_str(FB_WIDTH, FB_HEIGHT, "kHz", 4, A_RIGHT);
+                    fnt_draw_text(FB_WIDTH, FB_HEIGHT, "kHz", 4, H_RIGHT);
                 else if (g_digit_select <= 8)
-                    push_str(FB_WIDTH, FB_HEIGHT, "MHz", 4, A_RIGHT);
+                    fnt_draw_text(FB_WIDTH, FB_HEIGHT, "MHz", 4, H_RIGHT);
                 else if (g_digit_select <= 11)
-                    push_str(FB_WIDTH, FB_HEIGHT, "GHz", 4, A_RIGHT);
+                    fnt_draw_text(FB_WIDTH, FB_HEIGHT, "GHz", 4, H_RIGHT);
 
                 static char buf[] = "PWR [00]";
                 buf[5] = g_pwr_a_set / 10 + '0';
@@ -297,14 +296,14 @@ int main() {
                     buf[4] = ' ';
                     buf[7] = ' ';
                 }
-                push_str(0, FB_HEIGHT, buf, 8, A_LEFT);
-                push_str(60, FB_HEIGHT, g_pwr_a_on ? "RF On" : "RF Off", 6, A_LEFT);
+                fnt_draw_text(0, FB_HEIGHT, buf, 8, H_LEFT);
+                fnt_draw_text(60, FB_HEIGHT, g_pwr_a_on ? "RF On" : "RF Off", 6, H_LEFT);
                 update_screen = false;
             } else {
                 int x = 200 - frame * 2;
                 if (x <= (FB_WIDTH / 2))
                     x = FB_WIDTH / 2;
-                push_str(x, FB_HEIGHT - 2, TITLE_STR, sizeof(TITLE_STR), A_CENTER);
+                fnt_draw_text(x, FB_HEIGHT - 2, TITLE_STR, sizeof(TITLE_STR), H_MIDDLE);
             }
 
             ssd1306_refresh();
